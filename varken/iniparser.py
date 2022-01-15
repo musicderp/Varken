@@ -9,7 +9,11 @@ from configparser import ConfigParser, NoOptionError, NoSectionError
 from varken.varkenlogger import BlacklistFilter
 from varken.structures import SickChillServer, UniFiServer
 from varken.helpers import clean_sid_check, rfc1918_ip_check, boolcheck
-from varken.structures import SonarrServer, RadarrServer, OmbiServer, TautulliServer, InfluxServer
+<<<<<<< HEAD
+from varken.structures import SonarrServer, RadarrServer, OmbiServer, OverseerrServer, TautulliServer, InfluxServer, Influx2Server
+=======
+from varken.structures import SonarrServer, RadarrServer, OmbiServer, OverseerrServer, TautulliServer, InfluxServer
+>>>>>>> 07cc5946f37b14ab268c795fbdc5092988c10e97
 
 
 class INIParser(object):
@@ -17,7 +21,7 @@ class INIParser(object):
         self.config = None
         self.data_folder = data_folder
         self.filtered_strings = None
-        self.services = ['sonarr', 'radarr', 'lidarr', 'ombi', 'tautulli', 'sickchill', 'unifi']
+        self.services = ['sonarr', 'radarr', 'lidarr', 'ombi', 'overseerr', 'tautulli', 'sickchill', 'unifi']
 
         self.logger = getLogger()
         self.influx_server = InfluxServer()
@@ -144,23 +148,47 @@ class INIParser(object):
         if read_file:
             self.config = self.read_file('varken.ini')
             self.config_blacklist()
+
         # Parse InfluxDB options
-        try:
-            url = self.url_check(env.get('VRKN_INFLUXDB_URL', self.config.get('influxdb', 'url')),
-                                 include_port=False, section='influxdb')
-            port = int(env.get('VRKN_INFLUXDB_PORT', self.config.getint('influxdb', 'port')))
-            ssl = boolcheck(env.get('VRKN_INFLUXDB_SSL', self.config.get('influxdb', 'ssl')))
-            verify_ssl = boolcheck(env.get('VRKN_INFLUXDB_VERIFY_SSL', self.config.get('influxdb', 'verify_ssl')))
+        self.influx2_enabled = env.get('VRKN_GLOBAL_INFLUXDB2_ENABLED',
+                                       self.config.getboolean('global', 'influx2_enabled'))
 
-            username = env.get('VRKN_INFLUXDB_USERNAME', self.config.get('influxdb', 'username'))
-            password = env.get('VRKN_INFLUXDB_PASSWORD', self.config.get('influxdb', 'password'))
-        except NoOptionError as e:
-            self.logger.error('Missing key in %s. Error: %s', "influxdb", e)
-            self.rectify_ini()
-            return
+        if self.influx2_enabled:
+            # Use INFLUX version 2
+            try:
+                url = self.url_check(env.get('VRKN_INFLUXDB2_URL', self.config.get('influx2', 'url')),
+                                     section='influx2')
+                ssl = boolcheck(env.get('VRKN_INFLUXDB2_SSL', self.config.get('influx2', 'ssl')))
+                verify_ssl = boolcheck(env.get('VRKN_INFLUXDB2_VERIFY_SSL', self.config.get('influx2', 'verify_ssl')))
 
-        self.influx_server = InfluxServer(url=url, port=port, username=username, password=password, ssl=ssl,
-                                          verify_ssl=verify_ssl)
+                org = env.get('VRKN_INFLUXDB2_ORG', self.config.get('influx2', 'org'))
+                bucket = env.get('VRKN_INFLUXDB2_BUCKET', self.config.get('influx2', 'bucket'))
+                token = env.get('VRKN_INFLUXDB2_TOKEN', self.config.get('influx2', 'token'))
+                timeout = env.get('VRKN_INFLUXDB2_TIMEOUT', self.config.get('influx2', 'timeout'))
+            except NoOptionError as e:
+                self.logger.error('Missing key in %s. Error: %s', "influx2", e)
+                self.rectify_ini()
+                return
+
+            self.influx_server = Influx2Server(url=url, token=token, org=org, timeout=timeout, ssl=ssl,
+                                               verify_ssl=verify_ssl, bucket=bucket)
+        else:
+            try:
+                url = self.url_check(env.get('VRKN_INFLUXDB_URL', self.config.get('influxdb', 'url')),
+                                     include_port=False, section='influxdb')
+                port = int(env.get('VRKN_INFLUXDB_PORT', self.config.getint('influxdb', 'port')))
+                ssl = boolcheck(env.get('VRKN_INFLUXDB_SSL', self.config.get('influxdb', 'ssl')))
+                verify_ssl = boolcheck(env.get('VRKN_INFLUXDB_VERIFY_SSL', self.config.get('influxdb', 'verify_ssl')))
+
+                username = env.get('VRKN_INFLUXDB_USERNAME', self.config.get('influxdb', 'username'))
+                password = env.get('VRKN_INFLUXDB_PASSWORD', self.config.get('influxdb', 'password'))
+            except NoOptionError as e:
+                self.logger.error('Missing key in %s. Error: %s', "influxdb", e)
+                self.rectify_ini()
+                return
+
+            self.influx_server = InfluxServer(url=url, port=port, username=username, password=password, ssl=ssl,
+                                              verify_ssl=verify_ssl)
 
         # Check for all enabled services
         for service in self.services:
@@ -292,6 +320,39 @@ class INIParser(object):
                                                 request_total_run_seconds=request_total_run_seconds,
                                                 issue_status_counts=issue_status_counts,
                                                 issue_status_run_seconds=issue_status_run_seconds)
+                        
+                        if service == 'overseerr':
+                            get_latest_requests = boolcheck(env.get(
+                                f'VRKN_{envsection}_GET_LATEST_REQUESTS',
+                                self.config.get(section, 'get_latest_requests')))                            
+                            num_latest_requests_to_fetch = int(env.get(
+                                f'VRKN_{envsection}_NUM_LATEST_REQUESTS',
+                                self.config.getint(section, 'num_latest_requests_to_fetch')))
+                            num_latest_requests_seconds = int(env.get(
+                                f'VRKN_{envsection}_NUM_LATEST_REQUESTS_SECONDS',
+                                self.config.getint(section, 'num_latest_requests_seconds')))
+                            get_request_total_counts = boolcheck(env.get(
+                                f'VRKN_{envsection}_GET_REQUEST_TOTAL_COUNTS',
+                                self.config.get(section, 'get_request_total_counts')))
+                            request_total_run_seconds = int(env.get(
+                                f'VRKN_{envsection}_REQUEST_TOTAL_RUN_SECONDS',
+                                self.config.getint(section, 'request_total_run_seconds')))
+                            get_request_status_counts = boolcheck(env.get(
+                                f'VRKN_{envsection}_GET_REQUEST_STATUS_COUNTS',
+                                self.config.get(section, 'get_request_status_counts')))
+                            request_status_run_seconds = int(env.get(
+                                f'VRKN_{envsection}_REQUEST_STATUS_RUN_SECONDS',
+                                self.config.getint(section, 'request_status_run_seconds')))
+                            
+
+                            server = OverseerrServer(id=server_id, url=scheme + url, api_key=apikey, verify_ssl=verify_ssl,
+                                                get_latest_requests=get_latest_requests,
+                                                num_latest_requests_to_fetch=num_latest_requests_to_fetch,
+                                                num_latest_requests_seconds=num_latest_requests_seconds,
+                                                get_request_total_counts=get_request_total_counts,
+                                                request_total_run_seconds=request_total_run_seconds,
+                                                get_request_status_counts=get_request_status_counts,
+                                                request_status_run_seconds=request_status_run_seconds)
 
                         if service == 'sickchill':
                             get_missing = boolcheck(env.get(f'VRKN_{envsection}_GET_MISSING',

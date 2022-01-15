@@ -2,7 +2,7 @@
 <img width="800" src="https://raw.githubusercontent.com/Boerderij/Varken/master/assets/varken_full_banner.jpg" alt="Logo Banner">
 </p>
 
-[![pipeline status](https://gitlab.com/boerderij/Varken/badges/master/pipeline.svg)](https://gitlab.com/boerderij/Varken/commits/master)
+[![pipeline status](https://img.shields.io/github/workflow/status/Boerderij/Varken/varken?style=flat-square)](https://github.com/Boerderij/Varken/actions?query=workflow%3Avarken)
 [![Discord](https://img.shields.io/discord/518970285773422592.svg?colorB=7289DA&label=Discord&logo=Discord&logoColor=7289DA&style=flat-square)](https://discord.gg/VjZ6qSM)
 [![ko-fi](https://img.shields.io/badge/Buy%20Us%20A%20Coffee-Donate-ff813f.svg?logo=CoffeeScript&style=flat-square)](https://ko-fi.com/varken)
 [![Docker-Layers](https://images.microbadger.com/badges/image/boerderij/varken.svg)](https://microbadger.com/images/boerderij/varken)
@@ -17,7 +17,7 @@ ecosystem into InfluxDB using Grafana for a frontend
 Requirements:
 * [Python 3.6.7+](https://www.python.org/downloads/release/python-367/)
 * [Python3-pip](https://pip.pypa.io/en/stable/installing/)
-* [InfluxDB 1.8.x](https://www.influxdata.com/)
+* [InfluxDB 1.8.x or 2.0.x](https://www.influxdata.com/)
 * [Grafana](https://grafana.com/)
 
 <p align="center">

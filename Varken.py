@@ -14,6 +14,7 @@ from logging import getLogger, StreamHandler, Formatter, DEBUG
 # Needed to check version of python
 from varken import structures  # noqa
 from varken.ombi import OmbiAPI
+from varken.overseerr import OverseerrAPI
 from varken.unifi import UniFiAPI
 from varken import VERSION, BRANCH, BUILD_DATE
 from varken.sonarr import SonarrAPI
@@ -21,6 +22,7 @@ from varken.radarr import RadarrAPI
 from varken.lidarr import LidarrAPI
 from varken.iniparser import INIParser
 from varken.dbmanager import DBManager
+from varken.influxdb2manager import InfluxDB2Manager
 from varken.helpers import GeoIPHandler
 from varken.tautulli import TautulliAPI
 from varken.sickchill import SickChillAPI
@@ -90,7 +92,15 @@ if __name__ == "__main__":
     vl.logger.info("Varken v%s-%s %s", VERSION, BRANCH, BUILD_DATE)
 
     CONFIG = INIParser(DATA_FOLDER)
-    DBMANAGER = DBManager(CONFIG.influx_server)
+
+    if CONFIG.influx2_enabled:
+        # Use INFLUX version 2
+        vl.logger.info('Using INFLUXDBv2')
+        DBMANAGER = InfluxDB2Manager(CONFIG.influx_server)
+    else:
+        vl.logger.info('Using INFLUXDB')
+        DBMANAGER = DBManager(CONFIG.influx_server)
+
     QUEUE = Queue()
 
     if CONFIG.sonarr_enabled:
@@ -155,6 +165,19 @@ if __name__ == "__main__":
             if server.issue_status_counts:
                 at_time = schedule.every(server.issue_status_run_seconds).seconds
                 at_time.do(thread, OMBI.get_issue_counts).tag("ombi-{}-get_issue_counts".format(server.id))
+
+    if CONFIG.overseerr_enabled:
+        for server in CONFIG.overseerr_servers:
+            OVERSEER = OverseerrAPI(server, DBMANAGER)
+            if server.get_request_total_counts:
+                at_time = schedule.every(server.request_total_run_seconds).seconds
+                at_time.do(thread, OVERSEER.get_total_requests).tag("overseerr-{}-get_total_requests".format(server.id))
+            if server.get_request_status_counts:
+                at_time = schedule.every(server.request_status_run_seconds).seconds
+                at_time.do(thread, OVERSEER.get_request_status_counts).tag("overseerr-{}-get_request_status_counts".format(server.id))
+            if server.get_latest_requests:
+                at_time = schedule.every(server.num_latest_requests_seconds).seconds
+                at_time.do(thread, OVERSEER.get_latest_requests).tag("overseerr-{}-get_latest_requests".format(server.id))
 
     if CONFIG.sickchill_enabled:
         for server in CONFIG.sickchill_servers:

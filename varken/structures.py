@@ -20,6 +20,16 @@ class InfluxServer(NamedTuple):
     verify_ssl: bool = False
 
 
+class Influx2Server(NamedTuple):
+    url: str = 'localhost'
+    org: str = 'server'
+    token: str = 'TOKEN'
+    bucket: str = 'varken'
+    timeout: int = 10000
+    ssl: bool = False
+    verify_ssl: bool = False
+
+
 class SonarrServer(NamedTuple):
     api_key: str = None
     future_days: int = 0
@@ -56,6 +66,18 @@ class OmbiServer(NamedTuple):
     url: str = None
     verify_ssl: bool = False
 
+class OverseerrServer(NamedTuple):
+    api_key: str = None
+    id: int = None
+    url: str = None
+    verify_ssl: bool = False
+    get_request_total_counts: bool = False
+    request_total_run_seconds: int = 30
+    get_request_status_counts: bool = False
+    request_status_run_seconds: int = 30
+    get_latest_requests: bool = False
+    num_latest_requests_to_fetch: int = 10
+    num_latest_requests_seconds: int = 30
 
 class TautulliServer(NamedTuple):
     api_key: str = None
@@ -135,7 +157,6 @@ class OmbiTVRequest(NamedTuple):
     requestedByAlias: str = None
     requestStatus: str = None
 
-
 class OmbiMovieRequest(NamedTuple):
     approved: bool = None
     available: bool = None
@@ -171,6 +192,56 @@ class OmbiMovieRequest(NamedTuple):
     languageCode: str = None
     requestedByAlias: str = None
     requestStatus: str = None
+
+# Overseerr
+class OverseerrRequest(NamedTuple):
+    id: int = None
+    status: int = None
+    createdAt: str = None
+    updatedAt: str = None
+    type: str = None
+    is4k: bool = None
+    serverId: int = None
+    profileId: int = None
+    rootFolder: str = None
+    languageProfileId: int = None
+    tags: list = None
+    media: dict = None
+    seasons: list = None
+    modifiedBy: dict = None
+    requestedBy: dict = None
+    seasonCount: int = None
+
+class OverseerrRequestCounts(NamedTuple):
+    pending: int = None
+    approved: int = None
+    processing: int = None
+    available: int = None
+
+# Overseerr
+class OverseerrRequest(NamedTuple):
+    id: int = None
+    status: int = None
+    createdAt: str = None
+    updatedAt: str = None
+    type: str = None
+    is4k: bool = None
+    serverId: int = None
+    profileId: int = None
+    rootFolder: str = None
+    languageProfileId: int = None
+    tags: list = None
+    media: dict = None
+    seasons: list = None
+    modifiedBy: dict = None
+    requestedBy: dict = None
+    seasonCount: int = None
+
+class OverseerrRequestCounts(NamedTuple):
+    pending: int = None
+    approved: int = None
+    processing: int = None
+    available: int = None
 
 
 # Sonarr
