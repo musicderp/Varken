@@ -174,10 +174,12 @@ if __name__ == "__main__":
                 at_time.do(thread, OVERSEER.get_total_requests).tag("overseerr-{}-get_total_requests".format(server.id))
             if server.get_request_status_counts:
                 at_time = schedule.every(server.request_status_run_seconds).seconds
-                at_time.do(thread, OVERSEER.get_request_status_counts).tag("overseerr-{}-get_request_status_counts".format(server.id))
+                at_time.do(thread, OVERSEER.get_request_status_counts).tag("overseerr-{}-get_request_status_counts"
+                                                                           .format(server.id))
             if server.get_latest_requests:
                 at_time = schedule.every(server.num_latest_requests_seconds).seconds
-                at_time.do(thread, OVERSEER.get_latest_requests).tag("overseerr-{}-get_latest_requests".format(server.id))
+                at_time.do(thread, OVERSEER.get_latest_requests).tag("overseerr-{}-get_latest_requests"
+                                                                     .format(server.id))
 
     if CONFIG.sickchill_enabled:
         for server in CONFIG.sickchill_servers:
