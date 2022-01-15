@@ -66,6 +66,7 @@ class OmbiServer(NamedTuple):
     url: str = None
     verify_ssl: bool = False
 
+
 class OverseerrServer(NamedTuple):
     api_key: str = None
     id: int = None
@@ -78,6 +79,7 @@ class OverseerrServer(NamedTuple):
     get_latest_requests: bool = False
     num_latest_requests_to_fetch: int = 10
     num_latest_requests_seconds: int = 30
+
 
 class TautulliServer(NamedTuple):
     api_key: str = None
@@ -157,6 +159,7 @@ class OmbiTVRequest(NamedTuple):
     requestedByAlias: str = None
     requestStatus: str = None
 
+
 class OmbiMovieRequest(NamedTuple):
     approved: bool = None
     available: bool = None
@@ -193,6 +196,7 @@ class OmbiMovieRequest(NamedTuple):
     requestedByAlias: str = None
     requestStatus: str = None
 
+
 # Overseerr
 class OverseerrRequest(NamedTuple):
     id: int = None
@@ -211,6 +215,7 @@ class OverseerrRequest(NamedTuple):
     modifiedBy: dict = None
     requestedBy: dict = None
     seasonCount: int = None
+
 
 class OverseerrRequestCounts(NamedTuple):
     pending: int = None
@@ -218,6 +223,7 @@ class OverseerrRequestCounts(NamedTuple):
     processing: int = None
     available: int = None
 
+
 # Overseerr
 class OverseerrRequest(NamedTuple):
     id: int = None
@@ -236,6 +242,7 @@ class OverseerrRequest(NamedTuple):
     modifiedBy: dict = None
     requestedBy: dict = None
     seasonCount: int = None
+
 
 class OverseerrRequestCounts(NamedTuple):
     pending: int = None
