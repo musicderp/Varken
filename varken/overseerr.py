@@ -38,14 +38,15 @@ class OverseerrAPI(object):
                     tv_requests.append(OverseerrRequest(**result))
                 except TypeError as e:
                     self.logger.error('TypeError has occurred : %s while creating OverseerrRequest structure for show. '
-                                        'data attempted is: %s', e, result)
-            
+                                      'data attempted is: %s', e, result)
+
             if result['type'] == 'movie':
                 try:
                     movie_requests.append(OverseerrRequest(**result))
                 except TypeError as e:
-                    self.logger.error('TypeError has occurred : %s while creating OverseerrRequest structure for movie. '
-                                        'data attempted is: %s', e, result)
+                    self.logger.error('TypeError has occurred : %s while creating OverseerrRequest \
+                                      structure for movie. '
+                                      'data attempted is: %s', e, result)
 
         if tv_requests:
             tv_request_count = len(tv_requests)
@@ -109,11 +110,11 @@ class OverseerrAPI(object):
         movie_endpoint = '/api/v1/movie/'
         tv_endpoint = '/api/v1/tv/'
 
-        #GET THE LATEST n REQUESTS
+        # GET THE LATEST n REQUESTS
         req = self.session.prepare_request(Request('GET', self.server.url + endpoint))
         get_latest_req = connection_handler(self.session, req, self.server.verify_ssl)
 
-        #RETURN NOTHING IF NO RESULTS
+        # RETURN NOTHING IF NO RESULTS
         if not get_latest_req:
             return
 
@@ -122,15 +123,13 @@ class OverseerrAPI(object):
         # Request Type: Movie = 1, TV Show = 0
         for result in get_latest_req['results']:
             if result['type'] == 'tv':
-                req = self.session.prepare_request(Request('GET', self.server.url + tv_endpoint + str(result['media']['tmdbId'])))
+                req = self.session.prepare_request(Request('GET',
+                                                           self.server.url +
+                                                           tv_endpoint +
+                                                           str(result['media']['tmdbId'])))
                 get_tv_req = connection_handler(self.session, req, self.server.verify_ssl)
                 hash_id = hashit(f'{get_tv_req["id"]}{get_tv_req["name"]}')
 
-<<<<<<< HEAD
-=======
-                print(result)
-
->>>>>>> 07cc5946f37b14ab268c795fbdc5092988c10e97
                 influx_payload.append(
                     {
                         "measurement": "Overseerr",
@@ -151,7 +150,10 @@ class OverseerrAPI(object):
                 )
 
             if result['type'] == 'movie':
-                req = self.session.prepare_request(Request('GET', self.server.url + movie_endpoint + str(result['media']['tmdbId'])))
+                req = self.session.prepare_request(Request('GET',
+                                                           self.server.url +
+                                                           movie_endpoint +
+                                                           str(result['media']['tmdbId'])))
                 get_movie_req = connection_handler(self.session, req, self.server.verify_ssl)
                 hash_id = hashit(f'{get_movie_req["id"]}{get_movie_req["title"]}')
 
