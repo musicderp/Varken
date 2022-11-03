@@ -1,19 +1,21 @@
 import platform
 import schedule
+import distro
 from time import sleep
 from queue import Queue
 from sys import version
 from threading import Thread
 from os import environ as env
 from os import access, R_OK, getenv
-from distro import linux_distribution
 from os.path import isdir, abspath, dirname, join
 from argparse import ArgumentParser, RawTextHelpFormatter
 from logging import getLogger, StreamHandler, Formatter, DEBUG
 
+
 # Needed to check version of python
 from varken import structures  # noqa
 from varken.ombi import OmbiAPI
+from varken.overseerr import OverseerrAPI
 from varken.unifi import UniFiAPI
 from varken import VERSION, BRANCH, BUILD_DATE
 from varken.sonarr import SonarrAPI
@@ -27,7 +29,7 @@ from varken.sickchill import SickChillAPI
 from varken.varkenlogger import VarkenLogger
 
 
-PLATFORM_LINUX_DISTRO = ' '.join(x for x in linux_distribution() if x)
+PLATFORM_LINUX_DISTRO = ' '.join(distro.id() + distro.version() + distro.name())
 
 
 def thread(job, **kwargs):
@@ -156,6 +158,18 @@ if __name__ == "__main__":
                 at_time = schedule.every(server.issue_status_run_seconds).seconds
                 at_time.do(thread, OMBI.get_issue_counts).tag("ombi-{}-get_issue_counts".format(server.id))
 
+    if CONFIG.overseerr_enabled:
+        for server in CONFIG.overseerr_servers:
+            OVERSEER = OverseerrAPI(server, DBMANAGER)
+            if server.get_request_total_counts:
+                at_time = schedule.every(server.request_total_run_seconds).seconds
+                at_time.do(thread, OVERSEER.get_request_counts).tag("overseerr-{}-get_request_counts"
+                                                                    .format(server.id))
+            if server.num_latest_requests_to_fetch > 0:
+                at_time = schedule.every(server.num_latest_requests_seconds).seconds
+                at_time.do(thread, OVERSEER.get_latest_requests).tag("overseerr-{}-get_latest_requests"
+                                                                     .format(server.id))
+
     if CONFIG.sickchill_enabled:
         for server in CONFIG.sickchill_servers:
             SICKCHILL = SickChillAPI(server, DBMANAGER)
@@ -171,7 +185,8 @@ if __name__ == "__main__":
 
     # Run all on startup
     SERVICES_ENABLED = [CONFIG.ombi_enabled, CONFIG.radarr_enabled, CONFIG.tautulli_enabled, CONFIG.unifi_enabled,
-                        CONFIG.sonarr_enabled, CONFIG.sickchill_enabled, CONFIG.lidarr_enabled]
+                        CONFIG.sonarr_enabled, CONFIG.sickchill_enabled, CONFIG.lidarr_enabled,
+                        CONFIG.overseerr_enabled]
     if not [enabled for enabled in SERVICES_ENABLED if enabled]:
         vl.logger.error("All services disabled. Exiting")
         exit(1)

@@ -9,7 +9,7 @@ from configparser import ConfigParser, NoOptionError, NoSectionError
 from varken.varkenlogger import BlacklistFilter
 from varken.structures import SickChillServer, UniFiServer
 from varken.helpers import clean_sid_check, rfc1918_ip_check, boolcheck
-from varken.structures import SonarrServer, RadarrServer, OmbiServer, TautulliServer, InfluxServer
+from varken.structures import SonarrServer, RadarrServer, OmbiServer, OverseerrServer, TautulliServer, InfluxServer
 
 
 class INIParser(object):
@@ -17,7 +17,7 @@ class INIParser(object):
         self.config = None
         self.data_folder = data_folder
         self.filtered_strings = None
-        self.services = ['sonarr', 'radarr', 'lidarr', 'ombi', 'tautulli', 'sickchill', 'unifi']
+        self.services = ['sonarr', 'radarr', 'lidarr', 'ombi', 'overseerr', 'tautulli', 'sickchill', 'unifi']
 
         self.logger = getLogger()
         self.influx_server = InfluxServer()
@@ -154,13 +154,15 @@ class INIParser(object):
 
             username = env.get('VRKN_INFLUXDB_USERNAME', self.config.get('influxdb', 'username'))
             password = env.get('VRKN_INFLUXDB_PASSWORD', self.config.get('influxdb', 'password'))
+
+            org = env.get('VRKN_INFLUXDB_ORG', self.config.get('influxdb', 'org'))
         except NoOptionError as e:
             self.logger.error('Missing key in %s. Error: %s', "influxdb", e)
             self.rectify_ini()
             return
 
         self.influx_server = InfluxServer(url=url, port=port, username=username, password=password, ssl=ssl,
-                                          verify_ssl=verify_ssl)
+                                          verify_ssl=verify_ssl, org=org)
 
         # Check for all enabled services
         for service in self.services:
@@ -292,6 +294,27 @@ class INIParser(object):
                                                 request_total_run_seconds=request_total_run_seconds,
                                                 issue_status_counts=issue_status_counts,
                                                 issue_status_run_seconds=issue_status_run_seconds)
+
+                        if service == 'overseerr':
+                            get_request_total_counts = boolcheck(env.get(
+                                f'VRKN_{envsection}_GET_REQUEST_TOTAL_COUNTS',
+                                self.config.get(section, 'get_request_total_counts')))
+                            request_total_run_seconds = int(env.get(
+                                f'VRKN_{envsection}_REQUEST_TOTAL_RUN_SECONDS',
+                                self.config.getint(section, 'request_total_run_seconds')))
+                            num_latest_requests_to_fetch = int(env.get(
+                                f'VRKN_{envsection}_GET_LATEST_REQUESTS_TO_FETCH',
+                                self.config.getint(section, 'num_latest_requests_to_fetch')))
+                            num_latest_requests_seconds = int(env.get(
+                                f'VRKN_{envsection}_NUM_LATEST_REQUESTS_SECONDS',
+                                self.config.getint(section, 'num_latest_requests_seconds')))
+
+                            server = OverseerrServer(id=server_id, url=scheme + url, api_key=apikey,
+                                                     verify_ssl=verify_ssl,
+                                                     get_request_total_counts=get_request_total_counts,
+                                                     request_total_run_seconds=request_total_run_seconds,
+                                                     num_latest_requests_to_fetch=num_latest_requests_to_fetch,
+                                                     num_latest_requests_seconds=num_latest_requests_seconds)
 
                         if service == 'sickchill':
                             get_missing = boolcheck(env.get(f'VRKN_{envsection}_GET_MISSING',

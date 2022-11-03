@@ -2,7 +2,7 @@ from logging import getLogger
 from requests import Session, Request
 from datetime import datetime, timezone
 
-from varken.structures import RadarrMovie, Queue
+from varken.structures import QueuePages, RadarrMovie, RadarrQueue
 from varken.helpers import hashit, connection_handler
 
 
@@ -19,7 +19,7 @@ class RadarrAPI(object):
         return f"<radarr-{self.server.id}>"
 
     def get_missing(self):
-        endpoint = '/api/movie'
+        endpoint = '/api/v3/movie'
         now = datetime.now(timezone.utc).astimezone().isoformat()
         influx_payload = []
         missing = []
@@ -37,7 +37,7 @@ class RadarrAPI(object):
             return
 
         for movie in movies:
-            if movie.monitored and not movie.downloaded:
+            if movie.monitored and not movie.hasFile:
                 if movie.isAvailable:
                     ma = 0
                 else:
@@ -66,35 +66,53 @@ class RadarrAPI(object):
                 }
             )
 
-        self.dbmanager.write_points(influx_payload)
+        if influx_payload:
+            self.dbmanager.write_points(influx_payload)
+        else:
+            self.logger.warning("No data to send to influx for radarr-missing instance, discarding.")
 
     def get_queue(self):
-        endpoint = '/api/queue'
+        endpoint = '/api/v3/queue'
         now = datetime.now(timezone.utc).astimezone().isoformat()
         influx_payload = []
+        pageSize = 250
+        params = {'pageSize': pageSize, 'includeMovie': True, 'includeUnknownMovieItems': False}
+        queueResponse = []
         queue = []
 
-        req = self.session.prepare_request(Request('GET', self.server.url + endpoint))
+        req = self.session.prepare_request(Request('GET', self.server.url + endpoint, params=params))
         get = connection_handler(self.session, req, self.server.verify_ssl)
 
         if not get:
             return
 
-        for movie in get:
-            try:
-                movie['movie'] = RadarrMovie(**movie['movie'])
-            except TypeError as e:
-                self.logger.error('TypeError has occurred : %s while creating RadarrMovie structure', e)
+        response = QueuePages(**get)
+        queueResponse.extend(response.records)
+
+        while response.totalRecords > response.page * response.pageSize:
+            page = response.page + 1
+            params = {'pageSize': pageSize, 'page': page, 'includeMovie': True, 'includeUnknownMovieItems': False}
+            req = self.session.prepare_request(Request('GET', self.server.url + endpoint, params=params))
+            get = connection_handler(self.session, req, self.server.verify_ssl)
+            if not get:
                 return
 
-        try:
-            download_queue = [Queue(**movie) for movie in get]
-        except TypeError as e:
-            self.logger.error('TypeError has occurred : %s while creating Queue structure', e)
+            response = QueuePages(**get)
+            queueResponse.extend(response.records)
+
+        download_queue = []
+        for queueItem in queueResponse:
+            try:
+                download_queue.append(RadarrQueue(**queueItem))
+            except TypeError as e:
+                self.logger.warning('TypeError has occurred : %s while creating RadarrQueue structure', e)
+                return
+        if not download_queue:
+            self.logger.warning("No data to send to influx for radarr-queue instance, discarding.")
             return
 
         for queue_item in download_queue:
-            movie = queue_item.movie
+            movie = RadarrMovie(**queue_item.movie)
 
             name = f'{movie.title} ({movie.year})'
 
@@ -128,4 +146,7 @@ class RadarrAPI(object):
                 }
             )
 
-        self.dbmanager.write_points(influx_payload)
+        if influx_payload:
+            self.dbmanager.write_points(influx_payload)
+        else:
+            self.logger.warning("No data to send to influx for radarr-queue instance, discarding.")
