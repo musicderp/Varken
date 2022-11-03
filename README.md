@@ -11,6 +11,8 @@
 
 Dutch for PIG. PIG is an Acronym for Plex/InfluxDB/Grafana
 
+CREATING WORKING INFLUXV2 BUILD
+
 Varken is a standalone application to aggregate data from the Plex 
 ecosystem into InfluxDB using Grafana for a frontend
 
